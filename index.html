@@ -5,6 +5,11 @@
     <meta charset="UTF-8">
     <title>d3 O'clock</title>
     <script src="//d3js.org/d3.v3.min.js"></script>
+    <style>
+        text {
+            font-size: 26px;
+        }
+    </style>
 </head>
 
 <body>
@@ -41,7 +46,10 @@
         scaleMins = d3.scale.linear().domain([0, 59 + 59 / 60]).range([0, 2 * pi]);
         scaleHours = d3.scale.linear().domain([0, 11 + 59 / 60]).range([0, 2 * pi]);
 
-        var vis, clockGroup;
+        tickDomain = d3.scale.linear().domain([0, 11 + 59/60]).range([0, 2*pi]);
+        tickDomainInner = d3.scale.linear().domain([0, 59 + 59/60]).range([0, 2*pi]);
+        var vis, clockGroup, textGroup;
+
         vis = d3.selectAll(".chart")
             .append("svg:svg")
             .attr("width", width)
@@ -49,6 +57,9 @@
 
         clockGroup = vis.append("svg:g")
             .attr("transform", "translate(" + offSetX + "," + offSetY + ")");
+
+        textGroup = vis.append('svg:g')
+            .attr("transform", "translate(" + (offSetX) + "," + (offSetY+200) + ")");
 
         clockGroup.append("svg:circle")
             .attr("r", 120).attr("fill", "none")
@@ -60,6 +71,53 @@
             .attr("r", 6).attr("fill", "black")
             .attr("class", "clock innercircle")
 
+        var ticks = d3.svg.arc()
+            .innerRadius(105)
+            .outerRadius(120)
+            .startAngle(function(d) {
+                return tickDomain(d);
+            })
+            .endAngle(function(d) {
+                return tickDomain(d);
+            });
+
+        var ticksInner = d3.svg.arc()
+            .innerRadius(115)
+            .outerRadius(120)
+            .startAngle(function(d) {
+                return tickDomainInner(d);
+            })
+            .endAngle(function(d) {
+                return tickDomainInner(d);
+            });
+
+        clockGroup.selectAll('.ticks')
+            .data([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+            .enter()
+            .append("svg:path")
+            .attr("d", function (d){
+                return ticks(d);
+            })
+            .attr('class', 'ticks')
+            .attr('stroke', 'black')
+            .attr('fill', 'none');
+
+        innerTicksData = [];
+        for (var i = 0; i <= 59; i++) {
+            innerTicksData.push(i);
+        }
+        clockGroup.selectAll('.ticksInner')
+            .data(innerTicksData)
+            .enter()
+            .append("svg:path")
+            .attr("d", function (d){
+                return ticksInner(d);
+            })
+            .attr('class', 'ticksInner')
+            .attr('stroke', 'grey')
+            .attr('fill', 'none');
+
+
         var render;
         render = function(data) {
             var hourArc, minuteArc, secondArc;
@@ -68,7 +126,7 @@
 
             secondArc = d3.svg.arc()
                 .innerRadius(0)
-                .outerRadius(110)
+                .outerRadius(108)
                 .startAngle(function(d) {
                     return scaleSecs(d.numeric);
                 })
@@ -77,7 +135,7 @@
                 });
             minuteArc = d3.svg.arc()
                 .innerRadius(0)
-                .outerRadius(110)
+                .outerRadius(108)
                 .startAngle(function(d) {
                     return scaleMins(d.numeric);
                 })
@@ -114,12 +172,31 @@
                     if (d.unit === "seconds") {
                         return 2;
                     } else if (d.unit === "minutes") {
-                        return 3;
+                        return 4;
                     } else if (d.unit === "hours") {
-                        return 3;
+                        return 4;
                     }
                 })
                 .attr("fill", "none");
+            var timeText = function(d){
+                time = Math.floor(d[2].numeric) + ':' +
+                    Math.floor(d[1].numeric) + ':' +
+                    Math.round(d[0].numeric);
+                return time;
+            }
+
+            console.log(timeText(data));
+            textGroup.selectAll('text')
+                .remove();
+            textGroup.selectAll('text')
+                .data(data)
+                .enter()
+                .append("text")
+                .text(
+                function (d) {
+                    return timeText(data);
+                })
+                .attr("text-anchor", "middle");
         };
 
         setInterval ( function() {
